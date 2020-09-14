@@ -8,85 +8,85 @@ import java.util.OptionalDouble;
 
 public class Scanner {
 
-    /**
-     * Parse out desired data pieces. Data in the form of:
-     *
-     * <p>Time,Weight,Change,BMI,Body Fat,Skeletal Muscle Mass,Bone Mass,Body Water
-     */
-    private static BodyData parseBodyData(LocalDate date, String data) {
-        String splitBy = ",";
-        String invalidData = "--";
+  /**
+   * Parse out desired data pieces. Data in the form of:
+   *
+   * <p>Time,Weight,Change,BMI,Body Fat,Skeletal Muscle Mass,Bone Mass,Body Water
+   */
+  private static BodyData parseBodyData(LocalDate date, String data) {
+    String splitBy = ",";
+    String invalidData = "--";
 
-        String[] parsed = data.split(splitBy);
-        double weight = Double.parseDouble(parsed[1].substring(0, parsed[1].indexOf(" ")));
+    String[] parsed = data.split(splitBy);
+    double weight = Double.parseDouble(parsed[1].substring(0, parsed[1].indexOf(" ")));
 
-        OptionalDouble bodyFat;
-        try {
-            if (!parsed[4].contains(invalidData)) {
-                bodyFat =
-                        OptionalDouble.of(Double.parseDouble(parsed[4].substring(0, parsed[4].indexOf(" "))));
-            } else bodyFat = OptionalDouble.empty();
-        } catch (NumberFormatException e) {
-            bodyFat = OptionalDouble.empty();
-        }
-
-        OptionalDouble muscleMass;
-        try {
-            if (!parsed[5].contains(invalidData)) {
-                muscleMass =
-                        OptionalDouble.of(Double.parseDouble(parsed[5].substring(0, parsed[5].indexOf(" "))));
-            } else muscleMass = OptionalDouble.empty();
-        } catch (NumberFormatException e) {
-            muscleMass = OptionalDouble.empty();
-        }
-
-        return new BodyData(date, weight, bodyFat, muscleMass);
+    OptionalDouble bodyFat;
+    try {
+      if (!parsed[4].contains(invalidData)) {
+        bodyFat =
+            OptionalDouble.of(Double.parseDouble(parsed[4].substring(0, parsed[4].indexOf(" "))));
+      } else bodyFat = OptionalDouble.empty();
+    } catch (NumberFormatException e) {
+      bodyFat = OptionalDouble.empty();
     }
 
-    public ArrayList<BodyData> readFile(String fileName) {
-        String data = "";
-        ArrayList<BodyData> allData = new ArrayList<>();
+    OptionalDouble muscleMass;
+    try {
+      if (!parsed[5].contains(invalidData)) {
+        muscleMass =
+            OptionalDouble.of(Double.parseDouble(parsed[5].substring(0, parsed[5].indexOf(" "))));
+      } else muscleMass = OptionalDouble.empty();
+    } catch (NumberFormatException e) {
+      muscleMass = OptionalDouble.empty();
+    }
 
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(fileName));
-            reader.readLine(); // read heading line
-            data = reader.readLine();
+    return new BodyData(date, weight, bodyFat, muscleMass);
+  }
 
-            while (data != null) {
-                Optional<LocalDate> dateOptional = Date.parseDate(data);
-                if (dateOptional.isPresent()) {
-                    LocalDate date = dateOptional.get();
-                    BodyData bodyData;
-                    boolean readingData = true;
+  public ArrayList<BodyData> readFile(String fileName) {
+    String data;
+    ArrayList<BodyData> allData = new ArrayList<>();
 
-                    if ((data = reader.readLine()) != null) {
-                        // parse out first data entry
-                        bodyData = parseBodyData(date, data);
+    try {
+      BufferedReader reader = new BufferedReader(new FileReader(fileName));
+      reader.readLine(); // read heading line
+      data = reader.readLine();
 
-                        while (readingData) {
-                            // continue to parse until you get to a date or null
-                            data = reader.readLine();
-                            if (data != null) {
-                                // need to check if repeat data entries for this date
-                                dateOptional = Date.parseDate(data);
-                                if (dateOptional.isEmpty()) {
-                                    // there is more data; propagate the earliest data point
-                                    bodyData = parseBodyData(date, data);
-                                } else readingData = false;
-                            } else readingData = false;
-                        }
-                    } else {
-                        throw new IllegalStateException(
-                                String.format("Data for date %s does not exists", dateOptional.get()));
-                    }
-                    allData.add(bodyData);
-                }
+      while (data != null) {
+        Optional<LocalDate> dateOptional = BodyData.parseDate(data);
+        if (dateOptional.isPresent()) {
+          LocalDate date = dateOptional.get();
+          BodyData bodyData;
+          boolean readingData = true;
+
+          if ((data = reader.readLine()) != null) {
+            // parse out first data entry
+            bodyData = parseBodyData(date, data);
+
+            while (readingData) {
+              // continue to parse until you get to a date or null
+              data = reader.readLine();
+              if (data != null) {
+                // need to check if repeat data entries for this date
+                dateOptional = BodyData.parseDate(data);
+                if (dateOptional.isEmpty()) {
+                  // there is more data; propagate the earliest data point
+                  bodyData = parseBodyData(date, data);
+                } else readingData = false;
+              } else readingData = false;
             }
-
-        } catch (IOException e) {
-            e.printStackTrace();
+          } else {
+            throw new IllegalStateException(
+                String.format("Data for date %s does not exists", dateOptional.get()));
+          }
+          allData.add(bodyData);
         }
+      }
 
-        return allData;
+    } catch (IOException e) {
+      e.printStackTrace();
     }
+
+    return allData;
+  }
 }
